@@ -20,7 +20,9 @@ export default function CollectPage() {
   const [form, setForm] = useState({ firstName: "", lastName: "", mobile: "", receiver: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState<{ name: string; receiver: string } | null>(null);
+  const [done, setDone] = useState<{ name: string; receiver: string; at: number } | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const RESET_MS = 12000;
 
   useEffect(() => {
     if (!authLoading && !user) router.push("/");
@@ -33,12 +35,19 @@ export default function CollectPage() {
       .catch(() => setMissing(true));
   }, [slug, user]);
 
-  // auto-reset kiosk after success
+  // auto-reset kiosk after success, with a visible countdown
   useEffect(() => {
     if (!done) return;
-    const t = setTimeout(() => router.push(`/${slug}`), 12000);
-    return () => clearTimeout(t);
+    const id = setInterval(() => setElapsed(Date.now() - done.at), 100);
+    const t = setTimeout(() => router.push(`/${slug}`), RESET_MS);
+    return () => {
+      clearInterval(id);
+      clearTimeout(t);
+    };
   }, [done, router, slug]);
+
+  const progress = Math.max(0, 1 - elapsed / RESET_MS);
+  const remainingSec = Math.max(1, Math.ceil((RESET_MS - elapsed) / 1000));
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,8 +55,9 @@ export default function CollectPage() {
     setError("");
     setBusy(true);
     try {
-      await collectReceiver(project.id, project.totalReceivers, form);
-      setDone({ name: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(), receiver: form.receiver.replace(/\D/g, "") });
+      await collectReceiver(project.id, form);
+      setDone({ name: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(), receiver: form.receiver.replace(/\D/g, ""), at: Date.now() });
+      setElapsed(0);
       setForm({ firstName: "", lastName: "", mobile: "", receiver: "" });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not save. Try again.");
@@ -124,8 +134,20 @@ export default function CollectPage() {
               Done — back to desk
             </Link>
             <p className="mt-3 font-mono text-xs text-[#787774]">
-              This screen resets shortly.
+              Back to desk in {remainingSec}s
             </p>
+            <div
+              className="mx-auto mt-2 h-1 max-w-xs overflow-hidden rounded-sm bg-[#EAEAEA]"
+              role="progressbar"
+              aria-valuenow={Math.round(progress * 100)}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div
+                className="h-full bg-brand"
+                style={{ width: `${progress * 100}%` }}
+              />
+            </div>
           </div>
         </Reveal>
       </main>
@@ -207,7 +229,7 @@ export default function CollectPage() {
                 placeholder="45"
               />
               <p className="mt-1.5 font-mono text-xs text-[#787774]">
-                Printed on the unit · 1–{project?.totalReceivers ?? "…"}
+                As printed on the unit
               </p>
             </div>
             {error && (

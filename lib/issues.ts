@@ -70,7 +70,6 @@ export function subscribeIssues(
 
 export async function collectReceiver(
   projectId: string,
-  totalReceivers: number,
   input: { firstName: string; lastName: string; mobile: string; receiver: string }
 ): Promise<void> {
   const database = assertDb();
@@ -79,13 +78,7 @@ export async function collectReceiver(
   const mobile = input.mobile.trim();
   const receiverNumber = normalizeReceiver(input.receiver);
 
-  if (!/^[+\d][\d\s-]{6,14}$/.test(mobile))
-    throw new Error("Enter a valid mobile number.");
   if (!receiverNumber) throw new Error("Enter a valid receiver number.");
-
-  const num = parseInt(receiverNumber, 10);
-  if (totalReceivers > 0 && (num < 1 || num > totalReceivers))
-    throw new Error(`Receiver must be between 1 and ${totalReceivers}.`);
 
   // prevent double issue: same receiver still out
   const clash = await getDocs(
