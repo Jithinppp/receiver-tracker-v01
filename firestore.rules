@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Company device: every screen requires sign-in.
+    // All reads and writes need a Firebase Auth user; no public access.
+    match /projects/{projectId} {
+      allow read, write: if request.auth != null;
+
+      match /issues/{issueId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+  }
+}
