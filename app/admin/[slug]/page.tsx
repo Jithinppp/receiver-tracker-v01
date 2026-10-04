@@ -135,7 +135,7 @@ export default function ProjectDashboard() {
                 ) : (
                   <span className="tag tag-neutral">Paused</span>
                 )}
-                <span className="font-mono text-xs text-[#787774]">
+                <span className="break-all font-mono text-xs text-[#787774]">
                   {kioskUrl}
                 </span>
               </div>

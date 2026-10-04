@@ -245,7 +245,7 @@ export default function AdminPage() {
               as="article"
               key={p.id}
               index={i % 4}
-              className={`card lift p-7 ${SPAN_CLASS[i % SPAN_CLASS.length]}`}
+              className={`card lift min-w-0 p-6 sm:p-7 ${SPAN_CLASS[i % SPAN_CLASS.length]}`}
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="truncate font-mono text-xs text-[#787774]">
@@ -263,7 +263,7 @@ export default function AdminPage() {
               <h2 className="serif-tight mt-3 truncate text-[28px]">
                 {p.name}
               </h2>
-              <p className="mt-1 font-mono text-xs text-[#787774]">
+              <p className="mt-1 truncate font-mono text-xs text-[#787774]">
                 /{p.slug} · {p.totalReceivers} units
               </p>
               <div className="mt-6 flex gap-2 border-t border-[#EAEAEA] pt-5">

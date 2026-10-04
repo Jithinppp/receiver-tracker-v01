@@ -43,7 +43,7 @@ export default function RootLayout({
         <AuthProvider>
           <div className="ambient" aria-hidden="true" />
           <TopBar />
-          <div className="relative z-10 flex-1">{children}</div>
+          <div className="relative flex-1">{children}</div>
         </AuthProvider>
       </body>
     </html>
