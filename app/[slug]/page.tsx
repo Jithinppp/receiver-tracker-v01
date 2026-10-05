@@ -127,6 +127,14 @@ export default function KioskHome() {
         Enter your first and last name exactly as written, so the desk can
         match your return.
       </p>
+      <div className="mt-3 text-center">
+        <Link
+          href="/admin"
+          className="font-mono text-[11px] text-[#A8A7A3] transition hover:text-[#111111]"
+        >
+          admin →
+        </Link>
+      </div>
     </main>
   );
 }

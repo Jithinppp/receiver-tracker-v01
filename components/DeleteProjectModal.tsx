@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { deleteProject } from "@/lib/projects";
+import { CheckIcon, CopyIcon } from "./icons";
 
 type Props = {
   projectId: string;
@@ -22,7 +23,18 @@ export default function DeleteProjectModal({
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
   const matches = name === projectName;
+
+  const copyName = async () => {
+    try {
+      await navigator.clipboard.writeText(projectName);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setError("Copy failed — type the name manually.");
+    }
+  };
 
   const submit = async () => {
     if (!matches || busy) return;
@@ -53,37 +65,63 @@ export default function DeleteProjectModal({
             : `all ${issueCount} issue records`}
           . There is no undo.
         </p>
-        <label
-          htmlFor="delete-confirm"
-          className="mb-1.5 mt-5 block text-xs font-semibold uppercase tracking-[0.08em] text-[#787774]"
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
         >
-          Type <kbd>{projectName}</kbd> to confirm
-        </label>
-        <input
-          id="delete-confirm"
-          className="field"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder={projectName}
-          autoComplete="off"
-        />
-        {error && (
-          <div className="mt-3 rounded-md bg-[#FDEBEC] p-3 text-sm font-medium text-[#9F2F2D]">
-            {error}
+          <div className="mb-1.5 mt-5 flex items-center gap-2">
+            <label
+              htmlFor="delete-confirm"
+              className="text-xs font-semibold uppercase tracking-[0.08em] text-[#787774]"
+            >
+              Type <kbd>{projectName}</kbd> to confirm
+            </label>
+            <button
+              type="button"
+              onClick={copyName}
+              title="Copy project name"
+              aria-label="Copy project name"
+              className="grid h-6 w-6 place-items-center rounded-md border border-[#EAEAEA] bg-white text-[#787774] transition hover:text-[#111111]"
+            >
+              {copied ? (
+                <CheckIcon className="h-3.5 w-3.5" />
+              ) : (
+                <CopyIcon className="h-3.5 w-3.5" />
+              )}
+            </button>
           </div>
-        )}
-        <div className="mt-5 flex gap-2">
-          <button onClick={onClose} className="btn-ghost flex-1 py-2.5 text-sm">
-            Cancel
-          </button>
-          <button
-            onClick={submit}
-            disabled={!matches || busy}
-            className="flex-1 rounded-md bg-[#9F2F2D] py-2.5 text-sm font-semibold text-white transition hover:bg-[#7e2523] disabled:opacity-40"
-          >
-            {busy ? "Deleting…" : "Delete"}
-          </button>
-        </div>
+          <input
+            id="delete-confirm"
+            className="field"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={projectName}
+            autoComplete="off"
+          />
+          {error && (
+            <div className="mt-3 rounded-md bg-[#FDEBEC] p-3 text-sm font-medium text-[#9F2F2D]">
+              {error}
+            </div>
+          )}
+          <div className="mt-5 flex gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-ghost flex-1 py-2.5 text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!matches || busy}
+              className="flex-1 rounded-md bg-[#9F2F2D] py-2.5 text-sm font-semibold text-white transition hover:bg-[#7e2523] disabled:opacity-40"
+            >
+              {busy ? "Deleting…" : "Delete"}
+            </button>
+          </div>
+        </form>
       </div>
       </div>
     </div>

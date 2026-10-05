@@ -34,6 +34,7 @@ export default function AdminPage() {
   });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/");
@@ -42,18 +43,16 @@ export default function AdminPage() {
   useEffect(() => {
     if (!user) return;
     listProjects(false)
-      .then(setProjects)
-      .catch((e) => setError(e instanceof Error ? e.message : "Load failed"))
-      .finally(() => setFetching(false));
+      .then((list) => {
+        setProjects(list);
+        setLastSync(new Date());
+        setFetching(false);
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : "Load failed");
+        setFetching(false);
+      });
   }, [user]);
-
-  const refresh = async () => {
-    try {
-      setProjects(await listProjects(false));
-    } catch {
-      /* noop */
-    }
-  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +60,7 @@ export default function AdminPage() {
     setError("");
     setBusy(true);
     try {
-      await createProject(
+      const created = await createProject(
         {
           name: form.name,
           location: form.location,
@@ -73,7 +72,21 @@ export default function AdminPage() {
       );
       setForm({ name: "", location: "", details: "", eventDate: "", totalReceivers: "60" });
       setShowNew(false);
-      await refresh();
+      // Refetch everything, then union with what's on screen so the
+      // previous list can never shrink: created card first, server
+      // truth next, any stragglers kept at the end. Deduped by id.
+      const fresh = await listProjects(false);
+      setProjects((prev) => {
+        const seen = new Set(fresh.map((p) => p.id));
+        const kept = prev.filter((p) => !seen.has(p.id));
+        const merged = [
+          created,
+          ...fresh.filter((p) => p.id !== created.id),
+          ...kept,
+        ];
+        return [...new Map(merged.map((p) => [p.id, p])).values()];
+      });
+      setLastSync(new Date());
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Create failed.");
     } finally {
@@ -97,8 +110,16 @@ export default function AdminPage() {
           <div>
             <p className="eyebrow">Admin — {user.email}</p>
             <h1 className="serif-tight mt-2 text-4xl sm:text-5xl">
-              Conferences.
+              Conferences{" "}
+              <span className="text-2xl text-[#A8A7A3] sm:text-3xl">
+                ({projects.length})
+              </span>
             </h1>
+            <p className="mt-1 font-mono text-xs text-[#A8A7A3]">
+              {lastSync
+                ? `list synced at ${lastSync.toLocaleTimeString()}`
+                : "connecting…"}
+            </p>
             <p className="mt-3 max-w-md text-[15px]">
               One project per event. Open its kiosk address on the table
               iPad; guests handle the rest.
@@ -241,10 +262,8 @@ export default function AdminPage() {
       {!fetching && projects.length > 0 && (
         <div className="mt-8 grid gap-4 md:grid-cols-6">
           {projects.map((p, i) => (
-            <Reveal
-              as="article"
+            <article
               key={p.id}
-              index={i % 4}
               className={`card lift min-w-0 p-6 sm:p-7 ${SPAN_CLASS[i % SPAN_CLASS.length]}`}
             >
               <div className="flex items-center justify-between gap-2">
@@ -290,7 +309,7 @@ export default function AdminPage() {
                   <ExternalIcon className="h-4 w-4" />
                 </a>
               </div>
-            </Reveal>
+            </article>
           ))}
         </div>
       )}

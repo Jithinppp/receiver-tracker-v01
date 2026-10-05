@@ -122,3 +122,12 @@ export function ExternalIcon({ className }: P) {
     </Base>
   );
 }
+
+export function CopyIcon({ className }: P) {
+  return (
+    <Base className={className}>
+      <rect x="9" y="9" width="11" height="11" />
+      <path d="M5 15V4h11" />
+    </Base>
+  );
+}

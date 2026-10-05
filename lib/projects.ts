@@ -5,11 +5,14 @@ import {
   doc,
   getDocs,
   limit,
+  onSnapshot,
   query,
   serverTimestamp,
+  Timestamp,
   updateDoc,
   where,
   writeBatch,
+  type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { slugify } from "./slug";
@@ -93,8 +96,20 @@ export async function createProject(
     finished: false,
     finishedAt: null,
     createdBy: uid,
-    createdAt: null,
+    // Client timestamp so the new card orders correctly before the
+    // server snapshot with the real timestamp arrives.
+    createdAt: Timestamp.now(),
   };
+}
+
+function sortProjects(list: Project[]): Project[] {
+  // Newest first, so a just-created project lands at the top.
+  list.sort((a, b) => {
+    const at = a.createdAt?.toMillis() ?? 0;
+    const bt = b.createdAt?.toMillis() ?? 0;
+    return bt - at;
+  });
+  return list;
 }
 
 export async function listProjects(onlyActive = false): Promise<Project[]> {
@@ -103,7 +118,21 @@ export async function listProjects(onlyActive = false): Promise<Project[]> {
     ? query(collection(database, "projects"), where("isActive", "==", true))
     : collection(database, "projects");
   const snap = await getDocs(q);
-  return snap.docs.map((d) => mapProject(d.id, d.data()));
+  return sortProjects(snap.docs.map((d) => mapProject(d.id, d.data())));
+}
+
+/** Live project list: fires immediately and on every change. */
+export function subscribeProjects(
+  cb: (projects: Project[]) => void,
+  onError?: (e: Error) => void
+): Unsubscribe {
+  const database = assertDb();
+  return onSnapshot(
+    collection(database, "projects"),
+    (snap) =>
+      cb(sortProjects(snap.docs.map((d) => mapProject(d.id, d.data())))),
+    (err) => onError?.(err as Error)
+  );
 }
 
 export async function getProjectBySlug(slug: string): Promise<Project | null> {
